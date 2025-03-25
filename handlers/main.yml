@@ -1,0 +1,8 @@
+---
+# handlers file for semaphore_s072108
+- name: "Daemon_reload and semaphore.service restart"
+  ansible.builtin.systemd:
+    name: semaphore.service
+    daemon_reload: true
+    state: restarted
+...

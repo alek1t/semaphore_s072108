@@ -1,0 +1,61 @@
+---
+- name: "Add PostgreSQL Repository"
+  ansible.builtin.dnf:
+    name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+    disable_gpg_check: true
+    state: present
+
+- name: "Disable dnf-module postgresql"
+  ansible.builtin.command: "dnf -qy module disable postgresql"
+
+- name: "Install PostgreSQL 15 Server from specified official repo"
+  ansible.builtin.dnf:
+    name: "postgresql15-server"
+    enablerepo: "pgdg15"
+    disable_gpg_check: true
+    state: present
+
+- name: "Install PostgreSQL Python library"
+  ansible.builtin.dnf:
+    name: python3-psycopg2
+    state: present
+
+- name: "Check if database is initialized"
+  ansible.builtin.stat:
+    path: "/var/lib/pgsql/15/data/pg_hba.conf"
+  register: is_posgresql_initialized
+
+- name: "Database initialization"
+  ansible.builtin.command: "/bin/postgresql-15-setup initdb"
+  when: not is_posgresql_initialized.stat.exists
+
+- name: "Edit pg_hba.conf: allow IPv4 local connections"
+  ansible.builtin.lineinfile:
+    path: "/var/lib/pgsql/15/data/pg_hba.conf"
+    insertafter: '^# IPv4 local connections:'
+    line: 'host    all             all             127.0.0.1/32            md5'
+
+- name: "Edit pg_hba.conf: allow IPv6 local connections"
+  ansible.builtin.lineinfile:
+    path: "/var/lib/pgsql/15/data/pg_hba.conf"
+    insertafter: '^# IPv6 local connections:'
+    line: 'host    all             all             ::1/128                 md5'
+
+- name: "Enable and start service PostgreSQL 15 Server"
+  ansible.builtin.service:
+    name: postgresql-15
+    state: started
+    enabled: true
+
+- name: "Set postgres user's password"
+  community.postgresql.postgresql_user:
+    name: postgres
+    password: "{{ database_postgres_user_pass }}"
+    login_host: "localhost"
+    login_user: postgres
+    login_unix_socket: "/var/run/postgresql"
+    port: 5432
+  become: true
+  become_user: postgres
+  vars:
+    ansible_ssh_pipelining: true

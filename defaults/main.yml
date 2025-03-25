@@ -1,0 +1,14 @@
+---
+# defaults file for semaphore_s072108
+database_postgres_user_pass: "my-postgres-new-pass"
+semaphore_database_host: "localhost"
+semaphore_database_name: "semaphoredb"
+semaphore_database_user: "semaphore"
+semaphore_database_pass: "my-semaphore-database-pass"
+semaphore_linux_user: "semaphore"
+semaphore_user: "admin"
+semaphore_user_email: "admin@test.me"
+semaphore_pass: "my-semaphore-pass"
+semaphore_cookie_hash: "{{ lookup('password', '/dev/null length=32') | b64encode }}"
+semaphore_cookie_encryption: "{{ lookup('password', '/dev/null length=32') | b64encode }}"
+semaphore_access_key_encryption: "{{ lookup('password', '/dev/null length=32') | b64encode }}"

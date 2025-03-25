@@ -1,0 +1,36 @@
+---
+
+- name: "Install NGINX"
+  ansible.builtin.dnf:
+    name: nginx
+    state: present
+
+- name: "Copy ssl-certificates to nginx folder"
+  ansible.builtin.copy:
+    src: "/opt/semaphore/{{ item }}"
+    dest: "/etc/nginx/ssl/"
+    remote_src: true
+  loop:
+    - "localhost.key"
+    - "localhost.crt"
+
+- name: "Create NGINX configuration file for Semaphore from template"
+  ansible.builtin.template:
+    src: "templates/semaphore.conf.j2"
+    dest: "/etc/nginx/conf.d/semaphore.conf"
+
+- name: "Disable default server section in nginx.conf"
+  ansible.builtin.replace:
+    path: /etc/nginx/nginx.conf
+    regexp: '(?<=\n)    server \{(?:\n.*?)*?\n    \}'
+    replace: "#"
+
+- name: "Setup SE Linux to allow NGINX traffic"
+  ansible.builtin.command: "setsebool -P httpd_can_network_connect 1"
+
+- name: "Start service NGINX (with enable, and daemon-reload)"
+  ansible.builtin.systemd:
+    name: nginx
+    state: started
+    daemon_reload: true
+    enabled: true

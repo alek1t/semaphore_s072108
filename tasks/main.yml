@@ -1,0 +1,12 @@
+---
+# tasks file for semaphore_s072108
+
+- include_tasks: install-posgtres-redhat.yml
+
+- include_tasks: create-database-and-user.yml
+
+- include_tasks: install-and-setup-semaphore.yml
+
+- include_tasks: create-self-signed-certificate.yml
+
+- include_tasks: install-and-setup-nginx.yml

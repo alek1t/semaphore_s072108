@@ -1,0 +1,10 @@
+---
+- name: "Create ssl info file from template"
+  ansible.builtin.template:
+    src: "templates/ssl-info.txt.j2"
+    dest: "/opt/semaphore/ssl-info.txt"
+
+- name: "Create ssl certificate from ssl info file"
+  ansible.builtin.command: "openssl req -x509 -nodes -days 3652 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -config ssl-info.txt"
+  args:
+    chdir: "/opt/semaphore"

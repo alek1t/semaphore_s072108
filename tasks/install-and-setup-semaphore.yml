@@ -1,0 +1,76 @@
+---
+- name: "Download and install Semaphore 2.13 RPM package via DNF"
+  ansible.builtin.dnf:
+    name: "https://github.com/semaphoreui/semaphore/releases/download/v2.13.0/semaphore_2.13.0_linux_amd64.rpm"
+    disable_gpg_check: true
+    state: present
+
+- name: "Create new linux user for Semaphore"
+  ansible.builtin.user:
+    name: "{{ semaphore_linux_user }}"
+    create_home: true
+    home: "/opt/semaphore"
+
+- name: "Check Semaphore config is exists"
+  ansible.builtin.stat:
+    path: "/opt/semaphore/config.json"
+  register: semaphore_config_file
+
+- name: "Create Semaphore config file from template"
+  ansible.builtin.template:
+    src: "templates/config.json.j2"
+    dest: "/opt/semaphore/config.json"
+  when: not semaphore_config_file.stat.exists
+
+- name: "Change directory owner to semaphore user"
+  ansible.builtin.file:
+    path: "/opt/semaphore"
+    state: directory
+    recurse: true
+    owner: "{{ semaphore_linux_user }}"
+    group: "{{ semaphore_linux_user }}"
+
+- name: "Create symlink from semaphore folder to /etc"
+  ansible.builtin.file:
+    src: "/opt/semaphore"
+    dest: "/etc/semaphore"
+    state: link
+    owner: "{{ semaphore_linux_user }}"
+    group: "{{ semaphore_linux_user }}"
+
+- name: "Check user on Semaphore server exist"
+  ansible.builtin.command: "semaphore user list"
+  become: yes
+  become_user: "{{ semaphore_linux_user }}"
+  args:
+    chdir: "/opt/semaphore"
+  register: semaphore_user_list
+
+#- debug: msg="{{semaphore_user_list.stdout}}"
+
+- name: "Add user to Semaphore server"
+  ansible.builtin.command: |
+    semaphore user add --admin \
+      --login {{ semaphore_user }} \
+      --password {{ semaphore_pass }} \
+      --name {{ semaphore_user }} \
+      --email {{ semaphore_user_email }} \
+      --config ./config.json
+  become: yes
+  become_user: "{{ semaphore_linux_user }}"
+  args:
+    chdir: "/opt/semaphore"
+  when: semaphore_user not in semaphore_user_list.stdout
+
+- name: "Create semaphore.service file from template"
+  ansible.builtin.template:
+    src: "templates/semaphore.service.j2"
+    dest: "/etc/systemd/system/semaphore.service"
+
+- name: "Start semaphore service"
+  ansible.builtin.systemd:
+    name: semaphore.service
+    state: started
+    enabled: true
+    daemon_reload: true
+...

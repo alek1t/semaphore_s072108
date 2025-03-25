@@ -1,0 +1,40 @@
+---
+- name: "Create user in PostgreSQL for Semaphore"
+  community.postgresql.postgresql_user:
+    db: postgres
+    name: "{{ semaphore_database_user }}"
+    password: "{{ semaphore_database_pass }}"
+    expires: infinity
+    login_host: "localhost"
+    login_user: postgres
+    login_unix_socket: "/var/run/postgresql"
+    port: 5432
+  become: true
+  become_user: postgres
+
+- name: "Create database in PostgreSQL for Semaphore"
+  community.postgresql.postgresql_db:
+    name: "{{ semaphore_database_name }}"
+    comment: "Database for Semaphore"
+    owner: "{{ semaphore_database_user }}"
+    login_host: "localhost"
+    login_user: postgres
+    login_unix_socket: "/var/run/postgresql"
+    port: 5432
+  become: true
+  become_user: postgres
+
+- name: "GRANT ALL PRIVILEGES ON DATABASE {{ semaphore_database_name }} TO {{ semaphore_database_user }}"
+  community.postgresql.postgresql_privs:
+    db: postgres
+    privs: ALL
+    type: database
+    obj: "{{ semaphore_database_name }}"
+    role: "{{ semaphore_database_user }}"
+    login_host: "localhost"
+    login_user: postgres
+    login_unix_socket: "/var/run/postgresql"
+    port: 5432
+  become: true
+  become_user: postgres
+...
